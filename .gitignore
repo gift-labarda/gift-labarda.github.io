@@ -1,0 +1,12 @@
+# Private files: never uploaded to GitHub
+private/
+
+# Working notes for Gift and Claude Code: stay on this computer only
+CLAUDE.md
+docs/
+
+# System junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
