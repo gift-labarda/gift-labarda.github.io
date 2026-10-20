@@ -5,6 +5,7 @@ const root = document.documentElement;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 const isPhone = window.matchMedia("(max-width: 699px)").matches;
+const isTouch = window.matchMedia("(hover: none)").matches;
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 
@@ -101,7 +102,8 @@ setInterval(updateClock, 15000);
 
 // ---------- Smooth scrolling (Lenis) ----------
 let lenis = null;
-if (window.Lenis && !reduceMotion) {
+// Mouse and trackpad only: touch screens keep the phone's own native scrolling
+if (window.Lenis && !reduceMotion && !isTouch) {
   lenis = new window.Lenis({ lerp: 0.1, smoothWheel: true });
   if (window.gsap && window.ScrollTrigger) {
     lenis.on("scroll", window.ScrollTrigger.update);
@@ -182,14 +184,19 @@ let lastOpener = null;
 function openDialog(dialog, opener) {
   lastOpener = opener || null;
   if (lenis) lenis.stop();
-  dialog.showModal();
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
 }
 
 function closeDialog(dialog) {
   if (!dialog.open || dialog.classList.contains("is-closing")) return;
   const finish = () => {
     dialog.classList.remove("is-closing");
-    dialog.close();
+    if (typeof dialog.close === "function") dialog.close();
+    else {
+      dialog.removeAttribute("open");
+      dialog.dispatchEvent(new Event("close"));
+    }
   };
   if (reduceMotion) { finish(); return; }
   dialog.classList.add("is-closing");
@@ -504,6 +511,11 @@ Object.keys(fields).forEach((key) => {
   });
 });
 
+let lastSubmit = "email";
+$$('button[type="submit"]', form).forEach((btn) => {
+  btn.addEventListener("click", () => { lastSubmit = btn.value; });
+});
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const results = Object.keys(fields).map(checkField);
@@ -515,7 +527,8 @@ form.addEventListener("submit", (event) => {
   const business = fields.business.el.value.trim();
   const message = fields.message.el.value.trim();
   const text = `Hi Gift, I'm ${name} from ${business}. ${message}`;
-  if (event.submitter && event.submitter.value === "whatsapp") {
+  const via = event.submitter ? event.submitter.value : lastSubmit;
+  if (via === "whatsapp") {
     window.open(`https://wa.me/639454219903?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   } else {
     window.location.href = `mailto:workwithmslabarda@gmail.com?subject=${encodeURIComponent(`Work inquiry from ${name}`)}&body=${encodeURIComponent(text)}`;
@@ -707,6 +720,8 @@ if (reduceMotion || !window.gsap || !window.ScrollTrigger) {
 } else {
   const { gsap, ScrollTrigger } = window;
   gsap.registerPlugin(ScrollTrigger);
+  // iOS shows and hides its address bar while scrolling; ignore those resizes
+  ScrollTrigger.config({ ignoreMobileResize: true });
   const horizontal = window.matchMedia("(min-width: 700px)").matches;
 
   // Tiles enter with stagger: fade, rise, slight scale, blur to sharp.
@@ -716,10 +731,10 @@ if (reduceMotion || !window.gsap || !window.ScrollTrigger) {
     once: true,
     onEnter: (batch) => gsap.from(batch, {
       opacity: 0,
-      y: 30,
+      y: isTouch ? 20 : 30,
       scale: 0.96,
-      filter: "blur(8px)",
-      duration: 0.9,
+      filter: isTouch ? "none" : "blur(8px)",
+      duration: isTouch ? 0.7 : 0.9,
       ease: "power3.out",
       stagger: 0.08,
       clearProps: "opacity,transform,filter",
