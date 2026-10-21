@@ -178,20 +178,31 @@ if (!reduceMotion && words.length) {
   }, 2200);
 }
 
-// ---------- Dialog helpers (drawer and lightbox) ----------
+// ---------- Dialog helpers (drawer, lightbox, notes, resume) ----------
 let lastOpener = null;
 
 function openDialog(dialog, opener) {
   lastOpener = opener || null;
   if (lenis) lenis.stop();
+  dialog.classList.remove("is-closing");
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
 }
 
 function closeDialog(dialog) {
   if (!dialog.open || dialog.classList.contains("is-closing")) return;
+  // Finish once, from whichever comes first (the closing animation or a backup timer),
+  // and clean up both, so nothing left over can close the dialog the next time it opens
+  let done = false;
+  let timer = null;
+  const onEnd = (event) => { if (event.target === dialog) finish(); };
   const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    dialog.removeEventListener("animationend", onEnd);
     dialog.classList.remove("is-closing");
+    if (!dialog.open) return;
     if (typeof dialog.close === "function") dialog.close();
     else {
       dialog.removeAttribute("open");
@@ -200,8 +211,8 @@ function closeDialog(dialog) {
   };
   if (reduceMotion) { finish(); return; }
   dialog.classList.add("is-closing");
-  dialog.addEventListener("animationend", finish, { once: true });
-  setTimeout(() => { if (dialog.open) finish(); }, 400);
+  dialog.addEventListener("animationend", onEnd);
+  timer = setTimeout(finish, 450);
 }
 
 $$("dialog").forEach((dialog) => {
@@ -405,7 +416,7 @@ const coverflow = (() => {
   return { setFilter };
 })();
 
-// ---------- Sparkle burst and confetti ----------
+// ---------- Sparkle burst (unlock animation) ----------
 function burst(x, y, count = 14, chars = ["✦", "✧", "·"]) {
   if (reduceMotion) return;
   for (let i = 0; i < count; i += 1) {
@@ -421,23 +432,6 @@ function burst(x, y, count = 14, chars = ["✦", "✧", "·"]) {
     s.style.setProperty("--rot", `${Math.random() * 180}deg`);
     document.body.appendChild(s);
     setTimeout(() => s.remove(), 1000);
-  }
-}
-
-function confetti(x, y) {
-  if (reduceMotion) return;
-  const colors = ["#D3C2E1", "#7E5F96", "#C7798F", "#FBF7FF", "#4F2E69"];
-  for (let i = 0; i < 46; i += 1) {
-    const c = document.createElement("span");
-    c.className = "confetti";
-    c.style.left = `${x}px`;
-    c.style.top = `${y}px`;
-    c.style.background = colors[i % colors.length];
-    c.style.setProperty("--dx", `${(Math.random() - 0.5) * 420}px`);
-    c.style.setProperty("--dy", `${-80 - Math.random() * 240 + Math.random() * 200}px`);
-    c.style.setProperty("--rot", `${Math.random() * 720 - 360}deg`);
-    document.body.appendChild(c);
-    setTimeout(() => c.remove(), 1500);
   }
 }
 
@@ -458,12 +452,6 @@ $$(".unlock").forEach((btn) => {
       message.focus({ preventScroll: true });
     }, reduceMotion ? 0 : 420);
   });
-});
-
-// ---------- Giveaway: confetti on "Enter now" (the email still opens) ----------
-$(".enter-btn").addEventListener("click", (event) => {
-  const box = event.currentTarget.getBoundingClientRect();
-  confetti(box.left + box.width / 2, box.top + box.height / 2);
 });
 
 // ---------- Email button: copy the address and show a toast ----------
@@ -534,6 +522,176 @@ form.addEventListener("submit", (event) => {
     window.location.href = `mailto:workwithmslabarda@gmail.com?subject=${encodeURIComponent(`Work inquiry from ${name}`)}&body=${encodeURIComponent(text)}`;
   }
 });
+
+// ---------- "Message me" and "Ask about [package]": jump to the form, pre-filled ----------
+function goToForm(message) {
+  lastOpener = null;
+  $$("dialog").forEach((dialog) => { if (dialog.open) closeDialog(dialog); });
+  if (message) {
+    fields.message.el.value = message;
+    checkField("message");
+  }
+  const target = $(".quick-form");
+  setTimeout(() => {
+    if (lenis) lenis.scrollTo(target, { offset: -90 });
+    else target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    setTimeout(() => fields.name.el.focus({ preventScroll: true }), reduceMotion ? 0 : 700);
+  }, 250);
+}
+
+document.addEventListener("click", (event) => {
+  const ask = event.target.closest(".ask-pack");
+  if (ask) {
+    goToForm(`Hi Gift, I'm interested in the ${ask.dataset.package} package.`);
+    return;
+  }
+  const msg = event.target.closest(".message-me");
+  if (msg) goToForm(msg.dataset.message);
+});
+
+// ---------- About Gift: notes window ----------
+const notes = $(".notes");
+const notesBar = $(".notes-titlebar", notes);
+const notesTabs = $$(".notes-tab", notes);
+const desktopWindow = window.matchMedia("(min-width: 1024px) and (hover: hover)");
+const phoneSheet = window.matchMedia("(max-width: 699px)");
+
+function selectNotesTab(tab, focus) {
+  notesTabs.forEach((t) => {
+    const on = t === tab;
+    t.setAttribute("aria-selected", String(on));
+    t.tabIndex = on ? 0 : -1;
+    $(`#${t.getAttribute("aria-controls")}`).hidden = !on;
+  });
+  if (focus) tab.focus();
+}
+
+notesTabs.forEach((tab, i) => {
+  tab.addEventListener("click", () => selectNotesTab(tab, false));
+  tab.addEventListener("keydown", (event) => {
+    const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+    let target = null;
+    if (event.key in keys) target = notesTabs[(i + keys[event.key] + notesTabs.length) % notesTabs.length];
+    if (event.key === "Home") target = notesTabs[0];
+    if (event.key === "End") target = notesTabs[notesTabs.length - 1];
+    if (target) {
+      event.preventDefault();
+      selectNotesTab(target, true);
+    }
+  });
+});
+
+$$(".open-notes").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setMenu(false);
+    notes.classList.remove("is-floating");
+    notes.style.left = "";
+    notes.style.top = "";
+    notes.style.transform = "";
+    openDialog(notes, btn);
+    notesBar.classList.toggle("is-draggable", desktopWindow.matches);
+    if (desktopWindow.matches) {
+      // Pin the window where the browser centred it, so it can be dragged from there
+      const box = notes.getBoundingClientRect();
+      notes.style.left = `${box.left}px`;
+      notes.style.top = `${box.top}px`;
+      notes.classList.add("is-floating");
+    }
+    $('.notes-tab[aria-selected="true"]', notes).focus();
+  });
+});
+
+$(".notes-close", notes).addEventListener("click", () => closeDialog(notes));
+
+// Desktop: drag by the title bar. Phone: swipe the sheet down to close.
+let dragStart = null;
+notesBar.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("button")) return;
+  if (!desktopWindow.matches && !phoneSheet.matches) return;
+  const box = notes.getBoundingClientRect();
+  dragStart = { x: event.clientX, y: event.clientY, left: box.left, top: box.top };
+  try { notesBar.setPointerCapture(event.pointerId); } catch (e) {}
+  notesBar.classList.add("is-dragging");
+});
+
+notesBar.addEventListener("pointermove", (event) => {
+  if (!dragStart) return;
+  const dx = event.clientX - dragStart.x;
+  const dy = event.clientY - dragStart.y;
+  if (desktopWindow.matches) {
+    const box = notes.getBoundingClientRect();
+    const left = Math.min(Math.max(8, dragStart.left + dx), window.innerWidth - box.width - 8);
+    const top = Math.min(Math.max(8, dragStart.top + dy), window.innerHeight - 56);
+    notes.style.left = `${left}px`;
+    notes.style.top = `${top}px`;
+  } else if (dy > 0) {
+    notes.style.transform = `translateY(${dy}px)`;
+  }
+});
+
+const endNotesDrag = (event) => {
+  if (!dragStart) return;
+  const dy = event.clientY - dragStart.y;
+  dragStart = null;
+  notesBar.classList.remove("is-dragging");
+  if (phoneSheet.matches) {
+    notes.style.transform = "";
+    if (dy > 90) closeDialog(notes);
+  }
+};
+notesBar.addEventListener("pointerup", endNotesDrag);
+notesBar.addEventListener("pointercancel", endNotesDrag);
+
+// ---------- Resume viewer: view only ----------
+const viewer = $(".resume-viewer");
+let viewerLoaded = false;
+
+$$(".open-resume").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (!viewerLoaded) {
+      // Pages are CSS backgrounds (not <img>), loaded only when the viewer opens
+      $$(".resume-page", viewer).forEach((page) => { page.style.backgroundImage = `url("${page.dataset.bg}")`; });
+      viewerLoaded = true;
+    }
+    viewer.classList.remove("is-blurred");
+    openDialog(viewer, btn);
+    $(".resume-scroll", viewer).scrollTop = 0;
+    $(".resume-close", viewer).focus();
+  });
+});
+$(".resume-close", viewer).addEventListener("click", () => closeDialog(viewer));
+
+// Deterrents (a website cannot fully block screenshots; these make copying harder)
+["contextmenu", "dragstart", "selectstart", "copy", "cut"].forEach((type) => {
+  viewer.addEventListener(type, (event) => event.preventDefault());
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!viewer.open) return;
+  const key = (event.key || "").toLowerCase();
+  if ((event.ctrlKey || event.metaKey) && (key === "s" || key === "p")) {
+    event.preventDefault();
+    showToast("This resume is view only. Message me for a copy.");
+  }
+  if (key === "printscreen") viewer.classList.add("is-blurred");
+});
+
+document.addEventListener("keyup", (event) => {
+  if (!viewer.open || (event.key || "").toLowerCase() !== "printscreen") return;
+  // Best effort: overwrite what the key just copied
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText("").catch(() => {});
+  showToast("This resume is view only. Message me for a copy.");
+  setTimeout(() => viewer.classList.remove("is-blurred"), 1200);
+});
+
+// Blur the pages whenever the tab or app is not in front (also iOS and Android app switching)
+const blurViewer = () => { if (viewer.open) viewer.classList.add("is-blurred"); };
+const unblurViewer = () => { if (!document.hidden) viewer.classList.remove("is-blurred"); };
+window.addEventListener("blur", blurViewer);
+window.addEventListener("pagehide", blurViewer);
+window.addEventListener("focus", unblurViewer);
+window.addEventListener("pageshow", unblurViewer);
+document.addEventListener("visibilitychange", () => (document.hidden ? blurViewer() : unblurViewer()));
 
 // ---------- Ripple on button click ----------
 $$(".btn").forEach((btn) => {
@@ -646,7 +804,7 @@ const stars = (() => {
 // ---------- Desktop only: tilt, spotlight, magnetic buttons, custom cursor ----------
 if (finePointer && !reduceMotion) {
   $$(".tile").forEach((tile) => {
-    const noTilt = tile.matches(".tile-work, .tile-contact, .tile-giveaway, .tile-tools");
+    const noTilt = tile.matches(".tile-work, .tile-contact, .tile-tools, .tile-create, .tile-services, .tile-packages");
     tile.addEventListener("pointermove", (event) => {
       const box = tile.getBoundingClientRect();
       const x = (event.clientX - box.left) / box.width;

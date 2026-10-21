@@ -2119,7 +2119,7 @@ em {
   display: none;
 }
 
-/* Sparkle burst (unlock and confetti share this) */
+/* Sparkle burst (used by the unlock animation) */
 .burst {
   position: fixed;
   z-index: 460;
@@ -2132,135 +2132,6 @@ em {
 @keyframes burst {
   from { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
   to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(1); opacity: 0; }
-}
-
-.confetti {
-  position: fixed;
-  z-index: 460;
-  width: 8px;
-  height: 12px;
-  border-radius: 2px;
-  pointer-events: none;
-  animation: confetti 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
-}
-
-@keyframes confetti {
-  from { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
-  to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)); opacity: 0; }
-}
-
-/* ---------- GIVEAWAY (ticket) ---------- */
-
-.tile-giveaway {
-  padding: 0;
-  border: 0;
-  background: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-.tile-giveaway::before,
-.tile-giveaway::after {
-  display: none;
-}
-
-.ticket {
-  position: relative;
-  display: grid;
-  overflow: hidden;
-  border-radius: var(--radius);
-  background:
-    radial-gradient(circle at 90% 10%, rgba(199, 121, 143, 0.28), transparent 40%),
-    linear-gradient(130deg, var(--honey), var(--tuna) 60%, #2A1838);
-  border: 1px solid rgba(211, 194, 225, 0.25);
-  color: var(--ghost-white);
-  /* Ticket notches on both sides */
-  -webkit-mask: radial-gradient(circle 14px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-                radial-gradient(circle 14px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
-  mask: radial-gradient(circle 14px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
-        radial-gradient(circle 14px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  50% { transform: translateY(-6px); }
-}
-
-.ticket-main {
-  display: grid;
-  gap: 10px;
-  padding: 26px 30px;
-}
-
-.ticket-main .tile-label {
-  color: var(--ghost);
-}
-
-.give-title {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: clamp(1.35rem, 3vw, 1.9rem);
-  line-height: 1.2;
-}
-
-.give-title span {
-  color: var(--rose);
-}
-
-.give-text {
-  max-width: 44rem;
-  font-weight: 300;
-  color: var(--ghost-white);
-}
-
-.fine-print {
-  font-size: 0.78rem;
-  color: var(--ghost);
-}
-
-.ticket-stub {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 22px 30px 28px;
-  border-top: 2px dashed rgba(211, 194, 225, 0.35);
-}
-
-.stub-label {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 1.1rem;
-  color: var(--ghost-white);
-}
-
-.enter-btn {
-  min-width: 180px;
-  background: var(--ghost-white);
-  color: var(--tuna);
-}
-
-.enter-btn:hover {
-  background: var(--ghost);
-}
-
-.ticket-sparkles i {
-  position: absolute;
-  font-style: normal;
-  color: var(--ghost);
-  animation: twinkle 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.ticket-sparkles i:nth-child(1) { top: 14px; right: 30%; animation-delay: 0s; }
-.ticket-sparkles i:nth-child(2) { top: 18px; right: 46%; font-size: 0.7rem; animation-delay: 0.8s; color: var(--rose); }
-.ticket-sparkles i:nth-child(3) { top: 40%; right: 6%; animation-delay: 1.5s; }
-.ticket-sparkles i:nth-child(4) { top: 22px; left: 55%; font-size: 0.6rem; animation-delay: 2.2s; }
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.15); }
 }
 
 /* ---------- CONTACT ---------- */
@@ -2702,6 +2573,822 @@ dialog::backdrop {
 }
 
 /* ==========================================================
+   Update v5: roles, services groups, "what I can create",
+   packages, About Gift notes window, resume viewer
+   ========================================================== */
+
+/* ---------- Nav "About Gift" and hero notes button ---------- */
+
+.nav-about {
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.nav-about:hover {
+  background: var(--chip-bg);
+  border-color: var(--dusty);
+}
+
+.nav.is-open .nav-about {
+  width: 100%;
+  margin-top: 0.75rem;
+  font-size: 1.05rem;
+}
+
+.notes-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--chip-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1), background-color 0.3s;
+}
+
+.notes-btn:hover {
+  transform: rotate(-8deg) scale(1.06);
+  background: var(--ghost-white);
+  color: var(--tuna);
+}
+
+/* ---------- Tools strip group labels ---------- */
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 4px 0 10px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-soft);
+}
+
+.tool-group span {
+  color: var(--rose);
+}
+
+/* Tap or keyboard focus also shows the tool's name */
+.tool-logo:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.tool-logo:focus,
+.tool-logo:focus-visible {
+  transform: translateY(-3px);
+  background: var(--ghost-white);
+  color: var(--brand);
+}
+
+.tool-logo:focus::after {
+  max-width: 10rem;
+  color: var(--tuna);
+}
+
+/* ---------- Roles I'm open to ---------- */
+
+.roles-chips li {
+  font-size: 0.82rem;
+}
+
+.roles-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: auto;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+/* ---------- Services: 4 groups ---------- */
+
+.svc-groups {
+  display: grid;
+  gap: 22px;
+}
+
+.svc-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(211, 194, 225, 0.18);
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.2rem;
+  color: var(--ghost-white);
+}
+
+.svc-group-title .svc-icon {
+  color: var(--rose);
+}
+
+.svc-text {
+  display: grid;
+  gap: 2px;
+}
+
+.svc-name {
+  font-weight: 600;
+}
+
+.svc-line {
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ghost);
+}
+
+/* ---------- What I can create for you ---------- */
+
+.tile-create {
+  gap: 10px;
+  padding: 18px 0;
+  overflow: hidden;
+}
+
+.tile-create .tile-label {
+  padding: 0 24px;
+}
+
+.marquee-slow .marquee-track {
+  animation-duration: 70s;
+}
+
+.tile-create:hover .marquee-track,
+.tile-create:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+.create-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.create-chip::before {
+  content: "✦";
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--rose);
+}
+
+/* ---------- Packages ---------- */
+
+.packs {
+  display: grid;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.pack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px;
+  border: 1px solid var(--tile-border);
+  border-radius: var(--radius-sm);
+  background: var(--chip-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.pack-name {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.pack-tagline {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+.pack-list {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+}
+
+.pack-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.pack-list .icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--dusty);
+}
+
+[data-theme="light"] .pack-list .icon {
+  color: var(--honey);
+}
+
+.pack-plus {
+  font-weight: 600;
+}
+
+.pack .btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.pack-badge {
+  align-self: flex-start;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--ghost-white);
+  color: var(--tuna);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Premium: glowing gradient border in the palette, slightly larger */
+.pack-featured {
+  --pack-fill: #3F2753;     /* solid plum, so only the border glows */
+  border-color: transparent;
+  background:
+    linear-gradient(var(--pack-fill), var(--pack-fill)) padding-box,
+    conic-gradient(from var(--angle, 0deg), var(--dusty), var(--ghost), var(--rose), var(--dusty)) border-box;
+  border: 1.5px solid transparent;
+  box-shadow: 0 0 40px rgba(126, 95, 150, 0.45);
+  animation: spin-angle 8s linear infinite;
+}
+
+[data-theme="light"] .pack-featured {
+  --pack-fill: #FFFFFF;
+}
+
+.packs-note {
+  max-width: 52rem;
+  font-size: 0.95rem;
+  color: var(--text-soft);
+}
+
+/* ---------- Contact warm line, drawer extras ---------- */
+
+.contact-warm {
+  position: relative;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ghost-white);
+}
+
+.deliverables {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deliverables li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.deliverables .icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  color: var(--ghost);
+}
+
+[data-theme="light"] .deliverables .icon {
+  color: var(--dusty);
+}
+
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.drawer-actions .btn {
+  margin-top: 0;
+}
+
+/* ---------- About Gift: notes window ---------- */
+
+.notes {
+  width: min(680px, calc(100% - 32px));
+  max-height: min(560px, calc(100dvh - 32px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(59, 37, 75, 0.18);
+  border-radius: 14px;
+  background: var(--ghost-white);
+  color: var(--tuna);
+  box-shadow: 0 30px 80px rgba(10, 4, 16, 0.5);
+}
+
+.notes::backdrop {
+  background: rgba(10, 4, 16, 0.35);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.notes[open] {
+  animation: notes-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.notes.is-closing {
+  animation: notes-out 0.22s ease forwards;
+}
+
+@keyframes notes-in {
+  from { opacity: 0; transform: scale(0.92); }
+}
+
+@keyframes notes-out {
+  to { opacity: 0; transform: scale(0.95); }
+}
+
+.notes-window {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.notes-titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(59, 37, 75, 0.12);
+  background: linear-gradient(#F3ECF9, #EDE4F5);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.notes-titlebar.is-draggable {
+  cursor: grab;
+}
+
+.notes-titlebar.is-dragging {
+  cursor: grabbing;
+}
+
+.notes-handle {
+  display: none;
+}
+
+.notes-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+}
+
+.dot-red { background: #FF5F57; }
+.dot-yellow { background: #FEBC2E; }
+.dot-green { background: #28C840; }
+
+/* The red dot is a real button: a bigger invisible tap area, same small look */
+.notes-close {
+  position: relative;
+  cursor: pointer;
+}
+
+.notes-close::after {
+  content: "";
+  position: absolute;
+  inset: -16px;
+}
+
+.notes-close:focus-visible {
+  outline: 2px solid var(--tuna);
+  outline-offset: 3px;
+}
+
+.notes-title {
+  flex: 1;
+  margin-right: 40px;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--tuna);
+}
+
+.notes-body {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.notes-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  border-right: 1px solid rgba(59, 37, 75, 0.1);
+  background: #F4EEF9;
+}
+
+.notes-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tuna);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notes-tab:hover {
+  background: rgba(126, 95, 150, 0.12);
+}
+
+.notes-tab[aria-selected="true"] {
+  background: var(--honey);
+  color: var(--ghost-white);
+}
+
+.notes-tab:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 1px;
+}
+
+.notes-count {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.notes-panels {
+  overflow-y: auto;
+  padding: 22px 26px 26px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notes-panel h3 {
+  margin-bottom: 10px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.5rem;
+  color: var(--honey);
+}
+
+.notes-panel p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #3B254B;
+}
+
+.notes-panel:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Placeholder shown until Gift supplies the text (never published) */
+.needs-text {
+  padding: 10px 12px;
+  border: 1px dashed #8E4A5E;
+  border-radius: 8px;
+  color: #8E4A5E !important;
+  font-style: italic;
+}
+
+/* Desktop: a floating window placed by JS (draggable) */
+.notes.is-floating {
+  position: fixed;
+  margin: 0;
+}
+
+/* ---------- Resume viewer (view only) ---------- */
+
+.resume-viewer {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100%;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(20, 10, 28, 0.97);
+  color: var(--ghost-white);
+}
+
+.resume-viewer::backdrop {
+  background: rgba(10, 4, 16, 0.9);
+}
+
+.resume-viewer[open] {
+  display: flex;
+  flex-direction: column;
+  animation: fade-up 0.35s ease;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+}
+
+/* Discourage copying: nothing selectable, no callouts, no dragging */
+.resume-viewer,
+.resume-viewer * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+.resume-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 10px calc(16px + env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid rgba(211, 194, 225, 0.16);
+}
+
+.resume-title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.2rem;
+}
+
+.resume-title span {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ghost);
+}
+
+.resume-close {
+  border-color: rgba(211, 194, 225, 0.4);
+  color: var(--ghost-white);
+}
+
+.resume-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 14px calc(28px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom;
+  overscroll-behavior: contain;
+  transition: filter 0.25s;
+}
+
+.resume-pages {
+  display: grid;
+  gap: 18px;
+  width: min(100%, 860px);
+  margin: 0 auto;
+}
+
+.resume-page {
+  position: relative;
+  aspect-ratio: 1275 / 1650;
+  border-radius: 6px;
+  background-color: #ffffff;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+/* Soft repeating watermark over every page */
+.resume-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='260'%3E%3Ctext x='230' y='138' text-anchor='middle' transform='rotate(-22 230 130)' fill='%233B254B' fill-opacity='0.09' font-family='Arial, sans-serif' font-size='18' font-weight='600'%3Egift-labarda.github.io %7C view only%3C/text%3E%3C/svg%3E");
+  background-size: 460px 260px;
+}
+
+.resume-num {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(59, 37, 75, 0.85);
+  color: var(--ghost-white);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.resume-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 14px;
+  margin: 26px auto 0;
+  text-align: center;
+  color: var(--ghost);
+}
+
+/* Blur the pages whenever the tab or app is not in front */
+.resume-viewer.is-blurred .resume-scroll {
+  filter: blur(22px);
+}
+
+/* Print: never print the site, show a short note instead */
+.print-note {
+  display: none;
+}
+
+@media print {
+  body > *:not(.print-note) {
+    display: none !important;
+  }
+
+  .print-note {
+    display: block !important;
+    margin: 30vh auto 0;
+    font: 600 20pt/1.4 Georgia, serif;
+    color: #000;
+    text-align: center;
+  }
+
+  body {
+    background: #fff !important;
+  }
+}
+
+@media (min-width: 700px) {
+  .svc-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px;
+  }
+
+  .packs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pack-featured {
+    transform: scale(1.04);
+    z-index: 1;
+  }
+
+  .tile-create {
+    padding: 18px 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .svc-groups {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tile-create {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+    padding: 12px 0;
+  }
+
+  .tile-create .tile-label {
+    width: 9.5rem;
+    line-height: 1.5;
+    letter-spacing: 0.14em;
+  }
+}
+
+/* Phones: the notes window becomes a bottom sheet */
+@media (max-width: 699px) {
+  .notes {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88dvh;
+    margin: auto 0 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .notes[open] {
+    animation: sheet-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .notes.is-closing {
+    animation: sheet-out 0.25s ease forwards;
+  }
+
+  @keyframes sheet-in {
+    from { transform: translateY(100%); }
+  }
+
+  @keyframes sheet-out {
+    to { transform: translateY(100%); }
+  }
+
+  .notes-titlebar {
+    flex-wrap: wrap;
+    padding-top: 14px;
+  }
+
+  .notes-handle {
+    display: block;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 40px;
+    height: 5px;
+    margin-left: -20px;
+    border-radius: 999px;
+    background: rgba(59, 37, 75, 0.25);
+  }
+
+  .notes-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .notes-tabs {
+    flex-direction: row;
+    gap: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid rgba(59, 37, 75, 0.1);
+    scrollbar-width: none;
+  }
+
+  .notes-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .notes-panels {
+    padding: 18px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ==========================================================
    Tablet (700px and up)
    ========================================================== */
 
@@ -2774,16 +3461,6 @@ dialog::backdrop {
     transform-origin: left;
   }
 
-  .ticket {
-    grid-template-columns: 1fr auto;
-  }
-
-  .ticket-stub {
-    padding: 26px 40px;
-    border-top: 0;
-    border-left: 2px dashed rgba(211, 194, 225, 0.35);
-  }
-
   .tile-contact {
     padding: 40px 36px 24px;
   }
@@ -2794,10 +3471,6 @@ dialog::backdrop {
 
   .tile-tools {
     padding: 18px 0;
-  }
-
-  .tile-giveaway {
-    padding: 0;
   }
 }
 
@@ -2812,11 +3485,17 @@ dialog::backdrop {
 
   .nav ul {
     display: flex;
-    gap: 2.25rem;
+    align-items: center;
+    gap: 1.75rem;
   }
 
   .nav a {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0.4rem 0;
   }
 
@@ -2825,7 +3504,7 @@ dialog::backdrop {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: 8px;
     height: 1px;
     background: currentColor;
     transform: scaleX(0);
@@ -2848,7 +3527,7 @@ dialog::backdrop {
   }
 
   .tile-why { grid-column: 1 / 8; }
-  .tile-services { grid-column: 8 / 13; }
+  .tile-roles { grid-column: 8 / 13; }
   .tile-exp { grid-column: 1 / 7; }
   .tile-skills { grid-column: 7 / 13; }
   .tile-testimonials { grid-column: 1 / 8; }
@@ -2906,10 +3585,6 @@ dialog::backdrop {
 
   .tile-tools {
     padding: 12px 0;
-  }
-
-  .tile-giveaway {
-    padding: 0;
   }
 }
 
@@ -2979,7 +3654,7 @@ dialog::backdrop {
     filter: blur(40px);
   }
 
-  .tile:not(.tile-giveaway),
+  .tile,
   .topbar {
     -webkit-backdrop-filter: blur(12px) saturate(1.1);
     backdrop-filter: blur(12px) saturate(1.1);
@@ -2989,6 +3664,11 @@ dialog::backdrop {
      can draw on top of the fixed top bar while scrolling. */
   .tile {
     transform: none;
+  }
+
+  /* Premium card keeps its glowing border, without spinning, to save battery */
+  .pack-featured {
+    animation: none;
   }
 
   /* Keep the top bar on its own layer, always above the page */
@@ -3053,4 +3733,13 @@ dialog::backdrop {
   .rotator-word {
     transform: none;
   }
+}
+
+/* Resume viewer closing fade (kept at the end so it applies after the v5 block) */
+.resume-viewer.is-closing {
+  animation: fade-down 0.22s ease forwards;
+}
+
+@keyframes fade-down {
+  to { opacity: 0; transform: translateY(12px); }
 }
