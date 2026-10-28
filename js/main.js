@@ -93,7 +93,18 @@ function updateClock() {
   clockPH.textContent = now.toLocaleTimeString("en-US", { ...timeFormat, timeZone: "Asia/Manila" });
   const visitorZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const sameAsMe = now.toLocaleTimeString("en-US", { ...timeFormat, timeZone: "Asia/Manila" }) === now.toLocaleTimeString("en-US", timeFormat);
-  clockYou.textContent = sameAsMe ? "Same time zone as you" : `Your time: ${now.toLocaleTimeString("en-US", timeFormat)}`;
+  if (sameAsMe) {
+    clockYou.textContent = "We're in the same time zone ✦";
+  } else {
+    const phParts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(now);
+    const pick = (type) => Number(phParts.find((p) => p.type === type).value);
+    const phAsLocal = new Date(pick("year"), pick("month") - 1, pick("day"), pick("hour"), pick("minute"));
+    const diff = Math.round((phAsLocal - new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes())) / 1800000) / 2;
+    const hrs = Math.abs(diff);
+    const unit = hrs === 1 ? "hour" : "hours";
+    const rel = diff > 0 ? `${hrs} ${unit} behind me` : `${hrs} ${unit} ahead of me`;
+    clockYou.textContent = `Your time: ${now.toLocaleTimeString("en-US", timeFormat)} (${rel}). I work async, so you're supported at the times that suit you.`;
+  }
   clockYou.hidden = false;
   clockYou.title = visitorZone || "";
 }
@@ -178,7 +189,7 @@ if (!reduceMotion && words.length) {
   }, 2200);
 }
 
-// ---------- Dialog helpers (drawer, lightbox, notes, resume) ----------
+// ---------- Dialog helpers (drawer, lightbox, resume) ----------
 let lastOpener = null;
 
 function openDialog(dialog, opener) {
@@ -549,99 +560,6 @@ document.addEventListener("click", (event) => {
   if (msg) goToForm(msg.dataset.message);
 });
 
-// ---------- About Gift: notes window ----------
-const notes = $(".notes");
-const notesBar = $(".notes-titlebar", notes);
-const notesTabs = $$(".notes-tab", notes);
-const desktopWindow = window.matchMedia("(min-width: 1024px) and (hover: hover)");
-const phoneSheet = window.matchMedia("(max-width: 699px)");
-
-function selectNotesTab(tab, focus) {
-  notesTabs.forEach((t) => {
-    const on = t === tab;
-    t.setAttribute("aria-selected", String(on));
-    t.tabIndex = on ? 0 : -1;
-    $(`#${t.getAttribute("aria-controls")}`).hidden = !on;
-  });
-  if (focus) tab.focus();
-}
-
-notesTabs.forEach((tab, i) => {
-  tab.addEventListener("click", () => selectNotesTab(tab, false));
-  tab.addEventListener("keydown", (event) => {
-    const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
-    let target = null;
-    if (event.key in keys) target = notesTabs[(i + keys[event.key] + notesTabs.length) % notesTabs.length];
-    if (event.key === "Home") target = notesTabs[0];
-    if (event.key === "End") target = notesTabs[notesTabs.length - 1];
-    if (target) {
-      event.preventDefault();
-      selectNotesTab(target, true);
-    }
-  });
-});
-
-$$(".open-notes").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    setMenu(false);
-    notes.classList.remove("is-floating");
-    notes.style.left = "";
-    notes.style.top = "";
-    notes.style.transform = "";
-    openDialog(notes, btn);
-    notesBar.classList.toggle("is-draggable", desktopWindow.matches);
-    if (desktopWindow.matches) {
-      // Pin the window where the browser centred it, so it can be dragged from there
-      const box = notes.getBoundingClientRect();
-      notes.style.left = `${box.left}px`;
-      notes.style.top = `${box.top}px`;
-      notes.classList.add("is-floating");
-    }
-    $('.notes-tab[aria-selected="true"]', notes).focus();
-  });
-});
-
-$(".notes-close", notes).addEventListener("click", () => closeDialog(notes));
-
-// Desktop: drag by the title bar. Phone: swipe the sheet down to close.
-let dragStart = null;
-notesBar.addEventListener("pointerdown", (event) => {
-  if (event.target.closest("button")) return;
-  if (!desktopWindow.matches && !phoneSheet.matches) return;
-  const box = notes.getBoundingClientRect();
-  dragStart = { x: event.clientX, y: event.clientY, left: box.left, top: box.top };
-  try { notesBar.setPointerCapture(event.pointerId); } catch (e) {}
-  notesBar.classList.add("is-dragging");
-});
-
-notesBar.addEventListener("pointermove", (event) => {
-  if (!dragStart) return;
-  const dx = event.clientX - dragStart.x;
-  const dy = event.clientY - dragStart.y;
-  if (desktopWindow.matches) {
-    const box = notes.getBoundingClientRect();
-    const left = Math.min(Math.max(8, dragStart.left + dx), window.innerWidth - box.width - 8);
-    const top = Math.min(Math.max(8, dragStart.top + dy), window.innerHeight - 56);
-    notes.style.left = `${left}px`;
-    notes.style.top = `${top}px`;
-  } else if (dy > 0) {
-    notes.style.transform = `translateY(${dy}px)`;
-  }
-});
-
-const endNotesDrag = (event) => {
-  if (!dragStart) return;
-  const dy = event.clientY - dragStart.y;
-  dragStart = null;
-  notesBar.classList.remove("is-dragging");
-  if (phoneSheet.matches) {
-    notes.style.transform = "";
-    if (dy > 90) closeDialog(notes);
-  }
-};
-notesBar.addEventListener("pointerup", endNotesDrag);
-notesBar.addEventListener("pointercancel", endNotesDrag);
-
 // ---------- Resume viewer: view only ----------
 const viewer = $(".resume-viewer");
 let viewerLoaded = false;
@@ -948,3 +866,178 @@ if (reduceMotion || !window.gsap || !window.ScrollTrigger) {
 
   window.addEventListener("load", () => ScrollTrigger.refresh());
 }
+
+
+// ---------- Greeting by the visitor's own time ----------
+(() => {
+  const greet = $(".greet");
+  if (!greet) return;
+  const hour = new Date().getHours();
+  const text = hour < 5 ? "Hello, night owl 🌙" : hour < 12 ? "Good morning ☀️" : hour < 18 ? "Good afternoon ✦" : "Good evening 🌙";
+  greet.textContent = text;
+  greet.hidden = false;
+})();
+
+// ---------- Floating "Message me" button: shows after the hero, hides at the contact form ----------
+(() => {
+  const fab = $(".fab-message");
+  const hero = $(".tile-name");
+  const contact = $("#contact");
+  if (!fab || !hero || !contact || !("IntersectionObserver" in window)) return;
+  let pastHero = false;
+  let atContact = false;
+  const update = () => fab.classList.toggle("is-visible", pastHero && !atContact);
+  new IntersectionObserver(([entry]) => { pastHero = !entry.isIntersecting && entry.boundingClientRect.top < 0; update(); }).observe(hero);
+  new IntersectionObserver(([entry]) => { atContact = entry.isIntersecting; update(); }, { threshold: 0.15 }).observe(contact);
+})();
+
+// ---------- Quiz: "What's your business running on?" ----------
+(() => {
+  const quiz = $(".quiz");
+  if (!quiz) return;
+  const form = $(".quiz-form", quiz);
+  const steps = $$(".quiz-step", quiz);
+  const bar = $(".quiz-bar", quiz);
+  const count = $(".quiz-count", quiz);
+  const backBtn = $(".quiz-back", quiz);
+  const nextBtn = $(".quiz-next", quiz);
+  const result = $(".quiz-result", quiz);
+  let index = 0;
+
+  const starts = {
+    "inbox and calendar": "Take over your inbox and calendar so nothing slips",
+    "lead follow-up": "Set up a follow-up system so every lead hears back fast",
+    "client communication": "Handle client replies and messages the same day",
+    "social media and content": "Plan and post your content on a steady calendar",
+    "admin and data entry": "Clear the admin backlog and keep records clean",
+    "processes and SOPs": "Write simple SOPs so the business runs without you",
+    "email marketing": "Build email campaigns and automations that keep clients engaged",
+    "website and landing pages": "Build or update your landing pages and booking pages",
+    "ads": "Support your Meta ads setup and track your leads",
+    "marketing strategy": "Build your marketing plan: content pillars, a monthly calendar and a growth roadmap",
+  };
+  const types = [
+    { max: 5, emoji: "🧱", name: "The Steady Builder", pack: "Standard: Get organized", desc: "You've built good habits. Now protect your time: hand off the daily admin so you can focus on growth." },
+    { max: 8, emoji: "🤹", name: "The Juggler", pack: "Premium: Run smoother", desc: "You're keeping a lot of balls in the air, and a few are about to drop. A system for follow-ups and content will take the pressure off." },
+    { max: 99, emoji: "🦸", name: "The Superhero Founder", pack: "Premium+: Your operations partner", desc: "You're doing everything yourself, and it's working, for now. It's time for a partner who handles operations so you can lead." },
+  ];
+
+  function stepValid(step) {
+    const kind = step.dataset.kind;
+    if (kind === "text") return true;
+    const checked = $$("input:checked", step);
+    if (!checked.length) return false;
+    const other = $(".quiz-other", step);
+    if (other && !other.hidden && !other.value.trim()) return false;
+    return true;
+  }
+
+  function show(i) {
+    index = i;
+    steps.forEach((s, n) => {
+      s.classList.toggle("is-active", n === i);
+      s.hidden = n !== i;
+    });
+    bar.style.width = `${((i + 1) / steps.length) * 100}%`;
+    count.textContent = `Question ${i + 1} of ${steps.length}`;
+    backBtn.style.visibility = i === 0 ? "hidden" : "visible";
+    nextBtn.firstChild.textContent = i === steps.length - 1 ? "See my result " : "Next ";
+    nextBtn.disabled = !stepValid(steps[i]);
+  }
+
+  form.addEventListener("change", (event) => {
+    const step = event.target.closest(".quiz-step");
+    if (!step) return;
+    // "Something else" reveals a text box
+    const other = $(".quiz-other", step);
+    if (other) {
+      const wantsOther = $$('input[value="other"]:checked', step).length > 0;
+      other.hidden = !wantsOther;
+      if (wantsOther && event.target.value === "other") other.focus();
+    }
+    // Multi-select limit
+    const max = Number(step.dataset.max || 0);
+    if (max) {
+      const boxes = $$('input[type="checkbox"]', step);
+      const picked = boxes.filter((b) => b.checked).length;
+      boxes.forEach((b) => { b.disabled = !b.checked && picked >= max; });
+    }
+    nextBtn.disabled = !stepValid(step);
+    // Single choice (scored questions): move on by itself
+    if (step.dataset.kind === "single" && event.target.type === "radio" && event.target.value !== "other" && index < steps.length - 1) {
+      setTimeout(() => show(index + 1), reduceMotion ? 0 : 320);
+    }
+  });
+  form.addEventListener("input", (event) => {
+    const step = event.target.closest(".quiz-step");
+    if (step) nextBtn.disabled = !stepValid(step);
+  });
+  form.addEventListener("submit", (event) => event.preventDefault());
+
+  backBtn.addEventListener("click", () => { if (index > 0) show(index - 1); });
+  nextBtn.addEventListener("click", () => {
+    if (!stepValid(steps[index])) return;
+    if (index < steps.length - 1) show(index + 1);
+    else finish();
+  });
+
+  let summary = "";
+  function finish() {
+    const data = new FormData(form);
+    let niche = data.get("niche");
+    if (niche === "other") niche = (data.get("niche-other") || "").trim() || "business";
+    const slipping = data.getAll("slipping").filter((v) => v !== "other");
+    const otherSlip = (data.get("slipping-other") || "").trim();
+    const notes = (data.get("notes") || "").trim();
+    let score = ["q1", "q2", "q3"].reduce((sum, k) => sum + Number(data.get(k) || 0), 0);
+    const totalSlipping = slipping.length + (otherSlip ? 1 : 0);
+    score += totalSlipping >= 3 ? 2 : totalSlipping === 2 ? 1 : 0;
+    const type = types.find((t) => score <= t.max);
+
+    $(".quiz-emoji", result).textContent = type.emoji;
+    $(".quiz-type", result).textContent = type.name;
+    $(".quiz-desc", result).textContent = type.desc;
+    $(".quiz-pack", result).textContent = type.pack;
+    const list = $(".quiz-starts", result);
+    list.innerHTML = "";
+    const items = slipping.map((s) => starts[s]).filter(Boolean);
+    if (otherSlip) items.push(`Sort out: ${otherSlip}`);
+    if (!items.length) items.push("Map your weekly workflow and find what to hand off first");
+    items.slice(0, 4).forEach((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      list.appendChild(li);
+    });
+
+    const slipText = [...slipping, ...(otherSlip ? [otherSlip] : [])].join(", ");
+    const article = /^[aeiou]/i.test(niche) ? "an" : "a";
+    summary = `Hi Gift, I run ${article} ${niche}. I took your check-up and I'm ${type.name} ${type.emoji}.`;
+    if (slipText) summary += ` What's slipping: ${slipText}.`;
+    if (notes) summary += ` More about me: ${notes}`;
+    summary += ` I'm interested in ${type.pack.split(":")[0]}.`;
+
+    form.hidden = true;
+    $(".quiz-progress", quiz).hidden = true;
+    count.hidden = true;
+    result.hidden = false;
+    result.focus({ preventScroll: true });
+    if (!reduceMotion && typeof burst === "function") {
+      const box = $(".quiz-type", result).getBoundingClientRect();
+      burst(box.left + box.width / 2, box.top + box.height / 2, 18);
+    }
+  }
+
+  $(".quiz-send", result).addEventListener("click", () => goToForm(summary));
+  $(".quiz-retake", result).addEventListener("click", () => {
+    form.reset();
+    $$(".quiz-other", form).forEach((o) => { o.hidden = true; });
+    $$('input[type="checkbox"]', form).forEach((b) => { b.disabled = false; });
+    form.hidden = false;
+    $(".quiz-progress", quiz).hidden = false;
+    count.hidden = false;
+    result.hidden = true;
+    show(0);
+  });
+
+  show(0);
+})();
