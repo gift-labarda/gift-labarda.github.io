@@ -1041,3 +1041,41 @@ if (reduceMotion || !window.gsap || !window.ScrollTrigger) {
 
   show(0);
 })();
+
+// ---------- Live website previews ----------
+// Website and landing page cards load a fresh screenshot of the real site.
+// The saved image shows first and stays if the live one can't load.
+(() => {
+  const cards = $$('.work-card[data-type="site"], .work-card[data-type="page"]');
+  if (!cards.length) return;
+  const shotUrl = (url) =>
+    "https://s0.wp.com/mshots/v1/" + encodeURIComponent(url) + "?w=720&h=1350&vpw=1280&vph=2400";
+
+  function loadLive(card, tries) {
+    const img = $(".frame-screen img", card);
+    const link = $(".work-detail", card).content.querySelector("a.btn-primary[href^='http']");
+    if (!img || !link) return;
+    const src = shotUrl(link.href);
+    const probe = new Image();
+    probe.referrerPolicy = "no-referrer";
+    probe.onload = () => {
+      // While a new screenshot is being made, the service sends a small placeholder. Try again shortly.
+      if (probe.naturalWidth < 600) {
+        if (tries > 0) setTimeout(() => loadLive(card, tries - 1), 5000);
+        return;
+      }
+      img.src = src;
+      card.classList.add("is-live");
+    };
+    probe.src = src;
+  }
+
+  // Start when the work section gets close, then refresh every card at once
+  const section = cards[0].closest("section") || cards[0];
+  const io = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    io.disconnect();
+    cards.forEach((card) => loadLive(card, 4));
+  }, { rootMargin: "800px 0px" });
+  io.observe(section);
+})();

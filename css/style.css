@@ -3733,3 +3733,20 @@ dialog::backdrop {
   .quiz-options:not(.quiz-options-big) span { min-height: 56px; padding: 10px 12px; font-size: 0.86rem; }
   .quiz-options-big { grid-template-columns: 1fr; }
 }
+
+/* Live website preview badge */
+.work-card.is-live .frame-url::after {
+  content: "Live";
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 7px 1px 6px;
+  border-radius: 999px;
+  font-size: 0.68em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #0f5132;
+  background: #d1f2e0;
+  vertical-align: middle;
+}
